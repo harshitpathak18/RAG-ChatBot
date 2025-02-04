@@ -124,6 +124,26 @@ class WebRAGPipeline:
         
         Returns:
             chain: The RAG chain for generating responses, or None in case of error.
+        
+        Working:
+            When the RAG Chain is Used:
+                1️⃣ User asks a question
+                    Example: "What are the latest AI trends?"
+
+                2️⃣ Retriever searches for relevant documents
+                    The retriever looks in a vector database (e.g., Chroma, FAISS).
+                    It returns relevant documents.
+
+                3️⃣ Retrieved documents are processed by the document chain
+                    These documents are passed into document_chain along with the user's question.
+               
+                4️⃣ Language model generates a response
+                    * model receives retrieved context.
+                    * user's question.
+                    * generates an answer based on both.
+
+                5️⃣ Final response is returned
+                    The RAG pipeline outputs the final response.
         """
         try:
             # Define the prompt template for the model
