@@ -1,6 +1,7 @@
 # Importing Libraries
 import os
 import hashlib
+from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain.prompts import ChatPromptTemplate
 from langchain.chains import create_retrieval_chain
@@ -10,6 +11,8 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 
 
+# Load environment variables from .env file
+load_dotenv()
 
 class WebRAGPipeline:
     """
@@ -22,7 +25,7 @@ class WebRAGPipeline:
         model: The language model used for generating responses.
     """
 
-    def __init__(self, api_key):
+    def __init__(self,):
         """
         Initializes the WebRAGPipeline with the provided Google API key, setting up the necessary environment
         variable and initializing the language model for generative AI.
@@ -30,7 +33,7 @@ class WebRAGPipeline:
         Args:
             api_key (str): The API key for Google Cloud, required for interacting with Google Generative AI.
         """
-        os.environ['GOOGLE_API_KEY'] = api_key
+        os.environ['GOOGLE_API_KEY'] = os.getenv("GOOGLE_API_KEY")
         os.environ['USER_AGENT'] = "MyWebRAGPipeline/1.0"  # Set the USER_AGENT environment variable
         self.model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.8)
 
@@ -176,8 +179,7 @@ class WebRAGPipeline:
 
 if __name__ == "__main__":
     # Initialize the WebRAGPipeline with a Google API key
-    api_key = os.getenv("GOOGLE_API_KEY")
-    rag_pipeline = WebRAGPipeline(api_key)
+    rag_pipeline = WebRAGPipeline()
     
     # Load a document from a URL
     # url = "https://www.langchain.com/langgraph"
@@ -197,6 +199,6 @@ if __name__ == "__main__":
     response = rag_pipeline.get_response(user_input, vector_store)
 
     # Print the response
-    print("\n\n----------------- Answer -----------------")
+    print("\n----------------- Answer -----------------")
     print(response)
     print("----------------- Answer -----------------")
