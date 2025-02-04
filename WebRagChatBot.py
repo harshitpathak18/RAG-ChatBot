@@ -37,6 +37,7 @@ class WebRAGPipeline:
         os.environ['USER_AGENT'] = "MyWebRAGPipeline/1.0"  # Set the USER_AGENT environment variable
         self.model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.8)
 
+
     def load_document(self, url):
         """
         Loads a document from a given URL using the WebBaseLoader from Langchain. This method retrieves the
@@ -56,6 +57,7 @@ class WebRAGPipeline:
         except Exception as e:
             print(f"Error loading document: {e}")
             return []
+
 
     def create_chunks(self, docs):
         """
@@ -77,6 +79,7 @@ class WebRAGPipeline:
         except Exception as e:
             print(f"Error splitting document: {e}")
             return []
+
 
     def create_vector_store(self, chunks, url):
         """
@@ -112,6 +115,7 @@ class WebRAGPipeline:
         except Exception as e:
             print(f"Error creating or loading vector store: {e}")
             return None
+
 
     def get_rag_chain(self, retriever):
         """
@@ -162,6 +166,7 @@ class WebRAGPipeline:
             print(f"Error creating RAG chain: {e}")
             return None
 
+
     def get_response(self, user_input, vector_store):
         """
         Generates a response to a user's query using the RAG pipeline. This method first retrieves relevant
@@ -197,26 +202,41 @@ class WebRAGPipeline:
             return f"Error in response generation: {e}"
 
 
+
 if __name__ == "__main__":
+    import datetime
+
     # Initialize the WebRAGPipeline with a Google API key
     rag_pipeline = WebRAGPipeline()
     
     # Load a document from a URL
     # url = "https://www.langchain.com/langgraph"
     url = "https://www.geeksforgeeks.org/introduction-to-arrays-data-structure-and-algorithm-tutorials/"
+    print("--------------- Loading Docs ---------------")
+    t = datetime.datetime.now()
     docs = rag_pipeline.load_document(url)
+    print("Time Taken-", datetime.datetime.now()-t)
     
     # Split the document into smaller chunks
+    print("--------------- Creating Chunks ---------------")
+    t = datetime.datetime.now()
     chunks = rag_pipeline.create_chunks(docs)
-    
+    print("Time Taken-", datetime.datetime.now()-t)
+
     # Create a vector store using the document chunks
+    print("--------------- Creating Vectors ---------------")
+    t = datetime.datetime.now()
     vector_store = rag_pipeline.create_vector_store(chunks, url)
+    print("Time Taken-", datetime.datetime.now()-t)
     
     # Define a user query to generate a response
-    user_input = "What is an array with example?"
+    user_input = "How to create an array"
 
     # Get the generated response from the RAG pipeline
+    print("--------------- Generating Response ---------------")
+    t = datetime.datetime.now()
     response = rag_pipeline.get_response(user_input, vector_store)
+    print("Time Taken-", datetime.datetime.now()-t)
 
     # Print the response
     print("\n----------------- Answer -----------------")
