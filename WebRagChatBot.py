@@ -96,17 +96,17 @@ class WebRAGPipeline:
             url_hash = hashlib.md5(url.encode()).hexdigest()
 
             # Check if the vector store file already exists
-            if os.path.exists(f"db/{url_hash}"):
+            if os.path.exists(f"web_db/{url_hash}"):
                 print(f"Vector store already exists for URL: {url}")
                 # Load the existing vector store
                 embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-                vector_store = Chroma(persist_directory=f'db/{url_hash}/', embedding_function=embeddings)
+                vector_store = Chroma(persist_directory=f'web_db/{url_hash}/', embedding_function=embeddings)
                 return vector_store
             else:
                 print(f"Creating new vector store for URL: {url}")
                 # If not exists, create the vector store
                 embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-                vector_store = Chroma.from_documents(chunks, embeddings, persist_directory=f'db/{url_hash}/', )
+                vector_store = Chroma.from_documents(chunks, embeddings, persist_directory=f'web_db/{url_hash}/', )
                 return vector_store  # No need to persist manually
 
         except Exception as e:
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     vector_store = rag_pipeline.create_vector_store(chunks, url)
     
     # Define a user query to generate a response
-    user_input = "What is this document about?"
+    user_input = "What is an array with example?"
 
     # Get the generated response from the RAG pipeline
     response = rag_pipeline.get_response(user_input, vector_store)
