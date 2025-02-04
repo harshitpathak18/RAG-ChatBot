@@ -176,7 +176,7 @@ class WebRAGPipeline:
 
 if __name__ == "__main__":
     # Initialize the WebRAGPipeline with a Google API key
-    api_key = "AIzaSyBgXK36EMVy1m8mQAEDpo4feTdjUD2hZi0"
+    api_key = os.getenv("GOOGLE_API_KEY")
     rag_pipeline = WebRAGPipeline(api_key)
     
     # Load a document from a URL
