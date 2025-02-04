@@ -72,7 +72,7 @@ class WebRAGPipeline:
             list: A list of document chunks after splitting, or an empty list in case of error.
         """
         try:
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=100)
             chunks = text_splitter.split_documents(docs)
             return chunks
 
@@ -102,13 +102,13 @@ class WebRAGPipeline:
             if os.path.exists(f"web_db/{url_hash}"):
                 print(f"Vector store already exists for URL: {url}")
                 # Load the existing vector store
-                embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+                embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
                 vector_store = Chroma(persist_directory=f'web_db/{url_hash}/', embedding_function=embeddings)
                 return vector_store
             else:
                 print(f"Creating new vector store for URL: {url}")
                 # If not exists, create the vector store
-                embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+                embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
                 vector_store = Chroma.from_documents(chunks, embeddings, persist_directory=f'web_db/{url_hash}/', )
                 return vector_store  # No need to persist manually
 
@@ -230,7 +230,7 @@ if __name__ == "__main__":
     print("Time Taken-", datetime.datetime.now()-t)
     
     # Define a user query to generate a response
-    user_input = "How to create an array"
+    user_input = "What are array"
 
     # Get the generated response from the RAG pipeline
     print("--------------- Generating Response ---------------")
