@@ -1,6 +1,8 @@
+PyPDF2
 chromadb
 streamlit
 langchain
+faiss-cpu
 beautifulsoup4
 langchain-chroma
 langchain-community
