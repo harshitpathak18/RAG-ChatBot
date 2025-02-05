@@ -1,99 +1,153 @@
 import os
-import shutil
+import hashlib
 from PyPDF2 import PdfReader
 from dotenv import load_dotenv
-from langchain.prompts import PromptTemplate
 from langchain_community.vectorstores import FAISS
-from langchain.chains.question_answering import load_qa_chain
+from langchain.prompts import ChatPromptTemplate
+from langchain.chains import create_retrieval_chain
+from langchain_community.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
-class PDFQueryBot:
-    def __init__(self):
+class PdfRAGPipeline:
+    """
+    A Retrieval-Augmented Generation (RAG) pipeline for extracting and querying information from a PDF file
+    using FAISS vector store and Google's Gemini-1.5 language model.
+    """
+    def __init__(self, pdf_path):
         """
-        Initializes the PDFQueryBot with Google Generative AI for embeddings and retrieval.
-        """
-        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
-        self.vector_store_path = "pdf_db/faiss_index"
-        self.chain = self._get_conversational_chain()
-    
-    def _get_conversational_chain(self):
-        """
-        Creates a conversational QA chain.
-        """
-        prompt_template = """
-        Answer the question as detailed as possible from the provided context from single or multiple PDFs.
-        Answer in the same language as the context (Hindi if context is Hindi, English if context is English).
+        Initializes the PdfRAGPipeline with the given PDF file.
         
-        Context: {context}
-        Question: {question}
-        Answer:
+        Args:
+            pdf_path (str): Path to the PDF file.
         """
-        model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.7)
-        prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
-        return load_qa_chain(llm=model, chain_type="stuff", prompt=prompt)
-    
-    def extract_text_from_pdfs(self, pdf_files):
-        """
-        Extracts text content from multiple PDFs.
-        """
-        text = ""
-        for pdf in pdf_files:
-            reader = PdfReader(pdf)
-            for page in reader.pages:
-                text += page.extract_text()
-        return text
-    
-    def split_text_into_chunks(self, text, chunk_size=10000, chunk_overlap=100):
-        """
-        Splits extracted text into manageable chunks.
-        """
-        splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-        return splitter.split_text(text)
-    
-    def create_vector_store(self, chunks):
-        """
-        Generates and saves a FAISS vector store from text chunks.
-        """
-        if os.path.exists(self.vector_store_path):
-            shutil.rmtree(self.vector_store_path)
-        vector_store = FAISS.from_texts(chunks, embedding=self.embeddings)
-        vector_store.save_local(self.vector_store_path)
-    
-    def load_vector_store(self):
-        """
-        Loads the FAISS vector store.
-        """
-        if not os.path.exists(self.vector_store_path):
-            raise FileNotFoundError("Vector store not found. Please process PDFs first.")
-        return FAISS.load_local(self.vector_store_path, self.embeddings, allow_dangerous_deserialization=True)
-    
-    def answer_query(self, query):
-        """
-        Processes user queries by retrieving relevant context from the vector store.
-        """
-        vector_store = self.load_vector_store()
-        docs = vector_store.similarity_search(query)
-        response = self.chain({"input_documents": docs, "question": query}, return_only_outputs=True)
-        return response["output_text"]
-    
-    def process_pdfs(self, pdf_files):
-        """
-        Processes uploaded PDFs by extracting text, chunking, and storing vectors.
-        """
-        text = self.extract_text_from_pdfs(pdf_files)
-        chunks = self.split_text_into_chunks(text)
-        self.create_vector_store(chunks)
-        print("PDF Processing Completed. You can now ask queries.")
+        try:
+            self.pdf_path = pdf_path
+            self.pdf_hash = hashlib.md5(pdf_path.encode()).hexdigest()  # Generate a unique hash for storage
+            
+            # Set up environment variables for API keys
+            os.environ['GOOGLE_API_KEY'] = os.getenv('GOOGLE_API_KEY')
+            os.environ["USER_AGENT"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-# Example Usage
+            # Initialize the language model and embedding model
+            self.model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.8)
+            self.embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+
+            # Load or create FAISS retriever
+            self.retriever = self.load_or_create_retriever()
+
+        except Exception as e:
+            print(f"Error initializing PdfRAGPipeline: {e}")
+
+
+
+    def prepare_and_store_embeddings(self):
+        """
+        Extracts text from the PDF, splits it into chunks, and stores the embeddings in a FAISS vector database.
+        """
+        try:
+            text = ""
+            reader = PdfReader(self.pdf_path)
+            
+            for page in reader.pages:
+                text += page.extract_text() or ""
+
+            if not text.strip():
+                raise ValueError("No text could be extracted from the PDF.")
+            
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=100)
+            chunks = text_splitter.split_text(text)
+
+            # Create a FAISS vector store from document chunks
+            vector_store = FAISS.from_texts(chunks, self.embeddings)
+            vector_store.save_local(f"db_pdf/{self.pdf_hash}")  # Save embeddings locally
+
+        except Exception as e:
+            print(f"Error preparing and storing embeddings: {e}")
+
+
+
+    def load_or_create_retriever(self):
+        """
+        Loads an existing FAISS retriever if available, otherwise creates a new one.
+        
+        Returns:
+            FAISS retriever object.
+        """
+        try:
+            if not os.path.exists(f'db_pdf/{self.pdf_hash}'):
+                self.prepare_and_store_embeddings()  # Create embeddings if not found
+            
+            return FAISS.load_local(f"db_pdf/{self.pdf_hash}", self.embeddings, allow_dangerous_deserialization=True).as_retriever()
+        
+        except Exception as e:
+            print(f"Error loading or creating retriever: {e}")
+            return None
+
+
+
+    def get_response(self, query):
+        """
+        Generates a response for the given user query using the RAG pipeline.
+        
+        Args:
+            query (str): User input query.
+        
+        Returns:
+            str: Generated response.
+        """
+        try:
+            if not query.strip():
+                return "Query cannot be empty."
+            
+            # Define the prompt template
+            prompt = ChatPromptTemplate.from_messages([ 
+                ("system", "Answer the user's question as detailed as possible. Answer in the same language as the context (Hindi if context is Hindi, English if context is English) using the following context:\n\n{context}"), 
+                ("user", "{input}"), 
+            ])
+            
+            # Create a document processing chain
+            document_chain = create_stuff_documents_chain(self.model, prompt)
+            
+            # Create RAG pipeline
+            rag_chain = create_retrieval_chain(self.retriever, document_chain)
+            
+            # Run the pipeline
+            response = rag_chain.invoke({"input": query})
+            
+            return response.get('answer', "No response generated.")
+
+        except Exception as e:
+            return f"Error generating response: {e}"
+
+
+
 if __name__ == "__main__":
-    bot = PDFQueryBot()
-    pdf_files = [r"C:\Users\DELL\Downloads\Sample_3rd_Project_II.pdf", ]  # Replace with actual file paths
-    bot.process_pdfs(pdf_files)
-    query = "Give a summary"
-    response = bot.answer_query(query)
-    print("Response:", response)
+
+    try:
+        # Define the PDF path
+        pdf_path = r"C:\Users\DELL\Downloads\Sample_3rd_Project_II.pdf"
+
+        # Initialize the PdfRAGPipeline with the given PDF file
+        rag_pipeline = PdfRAGPipeline(pdf_path)
+        
+        while True:
+            query = input("\nEnter your query (type 'exit' to quit): ")
+
+            if query.lower() == "exit":
+                print("Exiting...")
+                break
+
+            # Generate a response
+            response = rag_pipeline.get_response(query)
+            
+            print("\n----------------- Answer -----------------")
+            print(response)
+            print("----------------- Answer -----------------")
+
+    except Exception as e:
+        print(f"Unexpected error: {e}")
