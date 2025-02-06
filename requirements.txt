@@ -1,9 +1,13 @@
+pandas
 PyPDF2
+openpyxl
 chromadb
 streamlit
 langchain
 faiss-cpu
+tabulate
 beautifulsoup4
 langchain-chroma
 langchain-community
 langchain-google-genai
+langchain-experimental
