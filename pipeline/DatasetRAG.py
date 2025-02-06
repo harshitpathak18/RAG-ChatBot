@@ -85,7 +85,7 @@ class DatasetRAGPipeline:
 
     def get_response(self, query):
         """Generates a response to a query."""
-        return self.agent.invoke(query)
+        return self.agent.invoke(query)['output']
 
 
 if __name__ == "__main__":

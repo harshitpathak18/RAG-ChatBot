@@ -59,9 +59,10 @@ class WebRAGPipeline:
             
             # Create a FAISS vector store from the document chunks
             vector_store = FAISS.from_documents(chunks, self.embeddings)
-            vector_store.save_local(f"db_web/{self.url_hash}")  # Save embeddings locally
+            vector_store.save_local(f"db/db_web/{self.url_hash}")  # Save embeddings locally
         except Exception as e:
             raise RuntimeError(f"Error during embedding preparation: {e}")
+
 
     def load_or_create_retriever(self):
         """
@@ -71,13 +72,14 @@ class WebRAGPipeline:
             FAISS retriever instance.
         """
         try:
-            if not os.path.exists(f'db_web/{self.url_hash}'):
+            if not os.path.exists(f'db/db_web/{self.url_hash}'):
                 self.prepare_and_store_embeddings()  # Create embeddings if not found
             
             # Load FAISS retriever for fast lookups
-            return FAISS.load_local(f"db_web/{self.url_hash}", self.embeddings, allow_dangerous_deserialization=True).as_retriever()
+            return FAISS.load_local(f"db/db_web/{self.url_hash}", self.embeddings, allow_dangerous_deserialization=True).as_retriever()
         except Exception as e:
             raise RuntimeError(f"Error loading retriever: {e}")
+
 
     def get_response(self, query):
         """
@@ -108,6 +110,7 @@ class WebRAGPipeline:
             return response.get('answer', "No response generated.")
         except Exception as e:
             return f"Error generating response: {e}"
+
 
 if __name__ == "__main__":
     try:

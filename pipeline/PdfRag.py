@@ -64,7 +64,7 @@ class PdfRAGPipeline:
 
             # Create a FAISS vector store from document chunks
             vector_store = FAISS.from_texts(chunks, self.embeddings)
-            vector_store.save_local(f"db_pdf/{self.pdf_hash}")  # Save embeddings locally
+            vector_store.save_local(f"db/db_pdf/{self.pdf_hash}")  # Save embeddings locally
 
         except Exception as e:
             print(f"Error preparing and storing embeddings: {e}")
@@ -79,10 +79,10 @@ class PdfRAGPipeline:
             FAISS retriever object.
         """
         try:
-            if not os.path.exists(f'db_pdf/{self.pdf_hash}'):
+            if not os.path.exists(f'db/db_pdf/{self.pdf_hash}'):
                 self.prepare_and_store_embeddings()  # Create embeddings if not found
             
-            return FAISS.load_local(f"db_pdf/{self.pdf_hash}", self.embeddings, allow_dangerous_deserialization=True).as_retriever()
+            return FAISS.load_local(f"db/db_pdf/{self.pdf_hash}", self.embeddings, allow_dangerous_deserialization=True).as_retriever()
         
         except Exception as e:
             print(f"Error loading or creating retriever: {e}")
