@@ -32,6 +32,7 @@ class DatasetRAGPipeline:
 
         self.agent = self._create_agent()
 
+
     def _load_dataset(self, dataset_path):
         """Loads the dataset, handling CSV and Excel, and encoding."""
         try:
