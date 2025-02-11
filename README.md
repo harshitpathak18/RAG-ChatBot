@@ -30,10 +30,6 @@ QueryMate is an AI-powered chatbot designed to extract insights from various kno
 - AI-driven responses for quick and accurate insights.
 - Query-based extraction from structured and unstructured data sources.
 
-#### 📊 Interactive Data Visualization
-- Preview datasets with shape information and sample data.
-- View processed information in a structured format.
-
 #### ⚡ User-Friendly Interface
 - Simple sidebar selection for knowledge sources.
 - Chat-like interface for seamless interaction with the AI assistant.
