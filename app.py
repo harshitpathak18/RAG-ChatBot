@@ -152,7 +152,7 @@ st.markdown("""
 
     .st-emotion-cache-6qob1r.e1dbuyne8{
         background: #0b3866;
-    }
+    }  
     
 </style>
 """, unsafe_allow_html=True)
@@ -298,8 +298,7 @@ with chat_container:
             st.markdown(f"""
                 <div class="user-message">
                     <img src="https://cdn-icons-png.flaticon.com/128/3059/3059442.png" width="35" height="35" style="margin-right: 10px;">
-                    {chat["content"]}
-                    
+                    {chat["content"]}    
                 </div>
             """, unsafe_allow_html=True)
 
@@ -314,36 +313,47 @@ with chat_container:
 
 
 # Chat input
-query = st.chat_input("💭 Ask your question here...")
+query = st.chat_input(f"💭 Ask your question here... ")
 
 
 if query and st.session_state.selected_rag:
-    # Display user message
+    # Display user message immediately
     st.markdown(f"""
-            <div class="user-message">
-                <img src="https://cdn-icons-png.flaticon.com/128/3059/3059442.png" width="35" height="35" style="margin-right: 10px;">
-                {query}
-            </div>
-        """, unsafe_allow_html=True)
-    st.session_state.is_typing = True
+        <div class="user-message">
+            <img src="https://cdn-icons-png.flaticon.com/128/3059/3059442.png" width="35" height="35" style="margin-right: 10px;">
+            {query}
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Add user query to history before generating response
+    st.session_state.query_history[current_source_type].append({"role": "user", "content": query})
+
+    # Create a placeholder for the assistant's response
+    response_placeholder = st.empty()
     
+    # Show a "typing..." message while generating response
+    response_placeholder.markdown("""
+        <div class="assistant-message">
+            <img src="https://cdn-icons-png.flaticon.com/128/11628/11628481.png" width="45" height="45" style="margin-right: 10px;">
+            <br><i>Typing...</i>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Generate response
     response = st.session_state.selected_rag.get_response(query)
     time.sleep(0.5)  # Simulate typing effect
-    st.session_state.is_typing = False
 
-    # Display assistant response
-    st.markdown(f"""
-                <div class="assistant-message">
-                    <img src="https://cdn-icons-png.flaticon.com/128/11628/11628481.png" width="45" height="45" style="margin-right: 10px;">
-                    <br>{response}
-                </div>
-            """, unsafe_allow_html=True)
-        
-    
-    st.empty()
-    
-    st.session_state.query_history[current_source_type].append({"role": "user", "content": query})
+    # Update placeholder with actual response
+    response_placeholder.markdown(f"""
+        <div class="assistant-message">
+            <img src="https://cdn-icons-png.flaticon.com/128/11628/11628481.png" width="45" height="45" style="margin-right: 10px;">
+            <br>{response}
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Append response to history AFTER rendering
     st.session_state.query_history[current_source_type].append({"role": "assistant", "content": response})
+
 
 # Default case if no source is selected
 elif query:
